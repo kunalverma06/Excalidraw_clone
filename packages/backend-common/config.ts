@@ -1,0 +1,1 @@
+export const JWT_SECRET = "your_secret_key"; // In production, use environment variables to manage secrets
