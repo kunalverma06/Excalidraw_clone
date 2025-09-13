@@ -1,6 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken"  
-import {JWT_SECRET} from "@repo/backend-common/config";
+import {JWT_SECRET} from "@repo/backend-common";
 import { middleware } from "./middleware";
 
 
