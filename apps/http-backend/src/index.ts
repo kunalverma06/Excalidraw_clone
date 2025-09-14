@@ -2,19 +2,36 @@ import express from "express";
 import jwt from "jsonwebtoken"  
 import {JWT_SECRET} from "@repo/backend-common";
 import { middleware } from "./middleware";
+import {CreateRoomSchema, CreateUserSchema, SigninSchema} from "@repo/common"
 
 
 const app = express();
 const PORT = 3001;
 
 // simple health check endpoint
-app.get("/", (req, res) => {
-  res.send("✅ Backend is working!");
+app.post("/signup", (req, res) => {
+  const data = CreateUserSchema.safeParse(req.body);
+  if(!data){
+    return res.json({
+      message:"invalid inputs"
+    })
+  }
+
 });
 
 app.post("/signin",(req,res)=>{
-  const {username,password,email}=req.body;
-  const token =jwt.sign(email,JWT_SECRET);
+  
+  
+  const value = SigninSchema.safeParse(req.body);
+   
+  if(!value.success){
+    return res.json({
+      message:"invalid inputs"
+    })
+  }
+  const username= value.data.username;
+  
+  const token =jwt.sign({username},JWT_SECRET);
 
   res.json({
     token
@@ -24,6 +41,13 @@ app.post("/signin",(req,res)=>{
 })
 
 app.post("/room",middleware,(req,res)=>{
+  const value = CreateRoomSchema.safeParse(req.body)
+  if(!value.success){
+    return res.json({
+      message:"Invalid Inputs"
+    })
+  }
+  
 
 })
 

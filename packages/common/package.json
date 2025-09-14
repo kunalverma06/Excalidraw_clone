@@ -1,23 +1,17 @@
 {
-  "name": "@repo/backend-common",
+  "name": "@repo/common",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "exports":{
-<<<<<<< HEAD
-    ".": "./src/index.ts"
-=======
     ".":"./src/index.ts"
->>>>>>> 6089238 (db package)
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-
   "dependencies": {
-    "@repo/typescript-config": "workspace:*"
+    "@repo/typescript-config":"workspace:*"
   },
-
   "keywords": [],
   "author": "",
   "license": "ISC",
