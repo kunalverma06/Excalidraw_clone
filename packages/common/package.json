@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "exports":{
-    ".":"./src/index.ts"
+  "exports": {
+    ".": "./src/index.ts"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@repo/typescript-config":"workspace:*"
+    "@repo/typescript-config": "workspace:*",
+    "zod": "^4.1.8"
   },
   "keywords": [],
   "author": "",

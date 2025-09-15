@@ -4,11 +4,7 @@
   "description": "",
   "main": "index.js",
   "exports":{
-<<<<<<< HEAD
     ".": "./src/index.ts"
-=======
-    ".":"./src/index.ts"
->>>>>>> 6089238 (db package)
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

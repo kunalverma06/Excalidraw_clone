@@ -7,6 +7,13 @@ settings:
 importers:
 
   .:
+    dependencies:
+      pnpm:
+        specifier: ^10.16.1
+        version: 10.16.1
+      prisma:
+        specifier: ^6.16.1
+        version: 6.16.1(typescript@5.9.2)
     devDependencies:
       prettier:
         specifier: ^3.6.2
@@ -114,6 +121,9 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      zod:
+        specifier: ^4.1.8
+        version: 4.1.8
 
   packages/db:
     dependencies:
@@ -1507,6 +1517,11 @@ packages:
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
 
+  pnpm@10.16.1:
+    resolution: {integrity: sha512-DhVaomKduGcrSehHXaYiaqS96oX9zf3BU1CHSUbU88kfqvZMvcSl0auAAvRz1cP87c0ZeYnPA5D5ut08BGeHBg==}
+    engines: {node: '>=18.12'}
+    hasBin: true
+
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
@@ -1904,6 +1919,9 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod@4.1.8:
+    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
 
 snapshots:
 
@@ -3397,6 +3415,8 @@ snapshots:
       exsolve: 1.0.7
       pathe: 2.0.3
 
+  pnpm@10.16.1: {}
+
   possible-typed-array-names@1.1.0: {}
 
   postcss@8.4.31:
@@ -3889,3 +3909,5 @@ snapshots:
   ws@8.18.3: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@4.1.8: {}

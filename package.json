@@ -16,5 +16,9 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "pnpm": "^10.16.1",
+    "prisma": "^6.16.1"
   }
 }
