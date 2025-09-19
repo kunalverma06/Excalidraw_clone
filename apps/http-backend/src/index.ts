@@ -105,10 +105,15 @@ app.post("/room",middleware, async (req:CustomReq,res)=>{
     })
   }
   const adminId = req.Userid;
-  try{const room_value = await prisma.room.create({
+  if(!adminId){
+    return res.json({
+      message:"Userid is missing"
+    })
+  }
+  try{ const room_value= await prisma.room.create({
     data:{
       adminId : adminId,
-      name : value.data.name
+      roomName : value.data.roomName
     }
       
       
