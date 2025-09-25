@@ -30,15 +30,15 @@ importers:
       '@repo/backend-common':
         specifier: workspace:*
         version: link:../../packages/backend-common
-      '@repo/common':
-        specifier: workspace:*
-        version: link:../../packages/common
       '@repo/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
+      '@repo/zod-types':
+        specifier: workspace:*
+        version: link:../../packages/zod_types
       '@types/bcrypt':
         specifier: ^6.0.0
         version: 6.0.0
@@ -134,15 +134,6 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
 
-  packages/common:
-    dependencies:
-      '@repo/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
-      zod:
-        specifier: ^4.1.8
-        version: 4.1.8
-
   packages/db:
     dependencies:
       '@prisma/client':
@@ -223,6 +214,15 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+
+  packages/zod_types:
+    dependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      zod:
+        specifier: ^4.1.8
+        version: 4.1.8
 
 packages:
 

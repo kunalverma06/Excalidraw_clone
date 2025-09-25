@@ -2,18 +2,22 @@ import express from "express";
 import jwt from "jsonwebtoken"  
 import {JWT_SECRET} from "@repo/backend-common";
 import { middleware } from "./middleware";
-import {CreateRoomSchema, CreateUserSchema, SigninSchema} from "@repo/common"
+import {CreateRoomSchema, CreateUserSchema, SigninSchema} from "@repo/zod-types"
 import {prisma} from "@repo/db"
 import {hash, compare} from "bcrypt";
 
 const app = express();
-const PORT = 5000;
+const PORT = 9000;
 app.use(express.json());
+
+
+
 
 
 
 // simple health check endpoint
 app.post("/signup", async (req, res) => {
+  console.log("signup endpoint hit");
   const values = CreateUserSchema.safeParse(req.body);
   if(!values.success){
     return res.json({
@@ -30,7 +34,7 @@ app.post("/signup", async (req, res) => {
       
       password:hashedPassword,
       
-      username:values.data.name,
+      username:values.data.username,
 
       name:values.data.name
     }
