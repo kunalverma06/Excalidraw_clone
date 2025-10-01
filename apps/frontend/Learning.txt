@@ -1,0 +1,74 @@
+                                    Problem 1 
+_____________________________________________________________________________________________
+    Problem :tell me why its not postioning taking the starting usestate 0 value onmousedown=(e)=>{ const x = e.clientX; const y = e.clientY; console.log(x,y) setValueX(x); setValueY(y); } onmouseup=(e)=>{ ctx.fillRect(valueX ,valueY,100,100) }
+
+    solution :Why useState doesn’t work immediately here
+
+    useState schedules an update for the next render.
+
+    It does not update the variable immediately.
+
+    useRef holds a mutable object that persists across renders:
+
+    const startRef = useRef({ x: 0, y: 0 });
+    startRef.current.x = e.clientX; // updates immediately
+
+
+    Updating .current does not trigger a re-render, but the value is available immediately.
+
+    Perfect for things like:
+
+    Canvas drawing
+
+    Animation frames
+
+    Tracking mouse position
+
+    Storing timers or previous values
+
+_____________________________________________________________________________________________
+                                Problem 2 
+
+useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            console.log("hello")
+            return;
+        }
+
+        // Set fill color BEFORE drawing
+
+            onmousedown=(e)=>{
+                startRef.current = ({x:e.clientX ,y: e.clientY})
+            }
+            onmouseup=(e)=>{
+                const {x,y}=startRef.current
+                ctx.fillRect(x,y , 100,100)            }
+        
+    }, [canvasRef]);
+
+
+    This works but this is not the best way to do it because the eventhandler we are using onmousedown and onmouseup are :Problems with this approach
+
+    onmousedown / onmouseup are global assignments
+
+    You are assigning these events to the window object, not specifically to your canvas element.
+
+    This can cause conflicts if other parts of your app also use these events.
+
+    No cleanup 
+
+    When your component unmounts, these event handlers stay attached, which may lead to memory leaks or unexpected behavior.
+
+    React doesn’t “know” about these handlers
+
+    Inline assignments like this don’t follow React’s synthetic event system, which may cause inconsistencies.
+
+
+
+    solution: Better approach: addEventListener inside useEffect 
+
+_____________________________________________________________________________________________
