@@ -1,5 +1,5 @@
 "use client"
-
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
 
@@ -73,10 +73,12 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
           </p>
           
           <div className="flex items-center justify-center gap-4">
-            <button className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg flex items-center gap-2">
-              Start Drawing
-              <Zap className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            </button>
+            <Link href="/canvas/234">
+                <button className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg flex items-center gap-2">
+                  Start Drawing
+                  <Zap className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                </button>
+            </Link>
             <button className="px-8 py-4 bg-white text-gray-700 rounded-full hover:shadow-lg transition-all duration-300 font-semibold text-lg border-2 border-gray-200 flex items-center gap-2">
               <Github className="w-5 h-5" />
               View on GitHub
