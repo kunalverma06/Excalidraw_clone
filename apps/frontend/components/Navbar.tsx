@@ -23,7 +23,7 @@ const Navbar = ({ activeTool }: NavbarProps) => {
   const activeIndex = tools.findIndex(t => t.id === activeTool.current);
 
   return (
-    <div className=" absolute w-screen flex justify-center items-center p-4 ">
+    <div className=" absolute left-1/2 -translate-x-1/2 flex items-center p-4 ">
       <div className="relative rounded-2xl shadow-lg border-2 z-10 border-gray-200 p-2 flex gap-1 overflow-hidden bg-red-300">
         {/* Animated background indicator */}
         <div

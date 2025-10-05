@@ -24,14 +24,16 @@ const CanvasComp = ({activeTool}:CanvasProp) => {
         initdraw(canvas, currentRef, startRef ,activeTool)
         
     })
+    const w = window.innerWidth;
+    const h = window.innerHeight
 
     return (
         <div >
 
             <canvas className="z-0"
                 ref={canvasRef}
-                width={window.innerWidth}
-                height={window.innerHeight}
+                width={w}
+                height={h}
                 style={{ backgroundColor: "pink" }}
             ></canvas>
 
