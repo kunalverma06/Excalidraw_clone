@@ -40,6 +40,14 @@ type Shapes =
         x: number;
         y: number;
         value: string
+    } |
+    {
+        type: "line";
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+
     }
 
 
@@ -63,8 +71,13 @@ function initdraw(
     let clicked = false;
 
     const handleMouseDown = (e: MouseEvent) => {
+        if (activeTool.current === "eraser") {
+            eraseAt(e, ctx);
+        }
         clicked = true;
+        
         startRef.current = { x: e.clientX, y: e.clientY };
+        console.log("starting", startRef.current);
     };
 
     const handleMouseUp = () => {
@@ -79,7 +92,14 @@ function initdraw(
     };
 
     const handleMouseMove = (e: MouseEvent) => {
+        if (clicked && activeTool.current === "eraser") {
+            eraseAt(e, ctx);
+            return;
+
+        }
+
         if (clicked) {
+            console.log("moving");
             currentRef.current = { x: e.clientX, y: e.clientY };
 
             const { x: current_x, y: current_y } = currentRef.current!;
@@ -99,20 +119,37 @@ function initdraw(
     };
 
 
-    const handleText=(e:KeyboardEvent) => {
+    function eraseAt(e: MouseEvent , ctx: CanvasRenderingContext2D ) {
+        const x = e.offsetX;
+        const y = e.offsetY;
+
+        // loop backward so removal doesn’t break index order
+        for (let i = Existing_Shapes.length - 1; i >= 0; i--) {
+            const shape = Existing_Shapes[i];
+            if (isPointInsideShape(x, y, shape)) {
+                Existing_Shapes.splice(i, 1); // remove shape
+            }
+        }
+        Existing_Draw(ctx, { width: canvas.width, height: canvas.height });
+    }
+
+
+
+    const handleText = (e: KeyboardEvent) => {
         if (activeTool.current === "text") {
             const lastShape = Existing_Shapes[Existing_Shapes.length - 1];
             if (lastShape?.type === "text") {
-                
-                if ( lastShape.value==="write"  ) {
+
+                if (lastShape.value === "write") {
                     console.log("inside");
-                    lastShape.value= e.key}
-            
-                else if(e.key==="Backspace"){
-                lastShape.value = lastShape.value.slice(0, -1)     
-                }    
+                    lastShape.value = e.key
+                }
+
+                else if (e.key === "Backspace") {
+                    lastShape.value = lastShape.value.slice(0, -1)
+                }
                 else if (e.key.length === 1) {
-                    
+
                     lastShape.value += e.key;
                 }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -122,10 +159,67 @@ function initdraw(
     };
 
 
+
+    function isPointInsideShape(x: number, y: number, shape: Shapes): boolean {
+        if (shape.type === "rect") {
+            return (
+                x == shape.x ||
+                x == shape.x + shape.width ||
+                y == shape.y ||
+                y == shape.y + shape.height
+            );
+        }
+if (shape.type === "circle") {
+  const dx = x - shape.centerX;
+  const dy = y - shape.centerY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  // Check if cursor is exactly on the circle's stroke
+  return Math.abs(distance - shape.radius) === 0;
+}
+
+if (shape.type === "triangle") {
+  const { topX, topY, leftX, leftY, rightX, rightY } = shape;
+  const d1 = pointToLineDistance(x, y, { x1: topX, y1: topY, x2: leftX, y2: leftY });
+  const d2 = pointToLineDistance(x, y, { x1: leftX, y1: leftY, x2: rightX, y2: rightY });
+  const d3 = pointToLineDistance(x, y, { x1: rightX, y1: rightY, x2: topX, y2: topY });
+  // Cursor must exactly touch one of the triangle sides
+  return d1 === 0 || d2 === 0 || d3 === 0;
+}
+
+        
+        
+
+        if (shape.type === "line" || shape.type === "arrow") {
+            const distance = pointToLineDistance(x, y, shape);
+            return distance < 6; // 6px tolerance for clicking near line
+        }
+
+        if (shape.type === "text") {
+            // approximate bounding box
+            const fontSize = 16;
+            const textWidth = shape.value.length * fontSize * 0.6;
+            const textHeight = fontSize;
+            return (
+                x == shape.x ||
+                x == shape.x + textWidth ||
+                y == shape.y ||
+                y == shape.y - textHeight
+            );
+        }
+
+        return false;
+    }
+
+
+
+
+
+
+
     canvas.addEventListener("mousedown", handleMouseDown);
     canvas.addEventListener("mouseup", handleMouseUp);
     canvas.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("keydown",(e)=>handleText(e) )
+    document.addEventListener("keydown", (e) => handleText(e))
 
 }
 
@@ -173,6 +267,12 @@ function Existing_Draw(ctx: CanvasRenderingContext2D, canvas: { width: number, h
             ctx.fillText(shape.value, shape.x, shape.y);
         }
 
+        if (shape.type === "line") {
+            ctx.beginPath();
+            ctx.moveTo(shape.x1, shape.y1);
+            ctx.lineTo(shape.x2, shape.y2);
+            ctx.stroke();
+        }
 
 
     })
@@ -257,8 +357,48 @@ function CreateShape(
 
     else if (activeTool.current === "text") {
         const shape: Shapes = { type: "text", x: startX, y: startY, value: "write" };
-        ctx.font = "16px Arial";  // default font
+        ctx.font = "20px Arial";  // default font
         ctx.fillText(shape.value, shape.x, shape.y);
         return shape;
     }
+
+    else if (activeTool.current === "line") {
+        const x1 = startX;
+        const y1 = startY;
+        const x2 = endX;
+        const y2 = endY;
+        const shape: Shapes = { type: "line", x1, y1, x2, y2 }
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+
+        ctx.stroke();
+        ctx.closePath();
+        return shape;
+    }
+}
+
+
+function pointToLineDistance(
+    x: number,
+    y: number,
+    line: { x1: number; y1: number; x2: number; y2: number }
+) {
+    const A = x - line.x1;
+    const B = y - line.y1;
+    const C = line.x2 - line.x1;
+    const D = line.y2 - line.y1;
+
+    const dot = A * C + B * D;
+    const len_sq = C * C + D * D;
+    const param = len_sq !== 0 ? dot / len_sq : -1;
+
+    let xx, yy;
+    if (param < 0) { xx = line.x1; yy = line.y1; }
+    else if (param > 1) { xx = line.x2; yy = line.y2; }
+    else { xx = line.x1 + param * C; yy = line.y1 + param * D; }
+
+    const dx = x - xx;
+    const dy = y - yy;
+    return Math.sqrt(dx * dx + dy * dy);
 }

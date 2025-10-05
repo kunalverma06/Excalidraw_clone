@@ -72,3 +72,37 @@ useEffect(() => {
     solution: Better approach: addEventListener inside useEffect 
 
 _____________________________________________________________________________________________
+                                        Problem 3
+
+
+
+
+These give the mouse position relative to the viewport (the visible part of the browser window).
+They do not care about where your element is positioned on the page.
+Always measured in pixels from the top-left corner of the browser window.
+Example:
++---------------- Browser Window ----------------+
+|                                                  |
+|  clientX, clientY = mouse coordinates from here |
+|                                                  |
++-------------------------------------------------+
+If the canvas is somewhere inside your page (e.g., not at top-left), clientX/Y includes the offset from the page, not the canvas itself.
+You usually need to subtract the element’s position to use it with canvas drawing.
+2️⃣ offsetX / offsetY
+These give the mouse position relative to the target element (in your case, the <canvas>).
+Perfect for canvas drawing because you often want coordinates inside the canvas.
+Measured in pixels from the top-left corner of the element itself.
+Example:
+Canvas element
++--------------------+
+| (0,0)  → offsetX/Y|
+|                    |
+|                    |
++--------------------+
+If you click at the very top-left of the canvas → offsetX = 0, offsetY = 0.
+If you click 50px to the right inside the canvas → offsetX = 50.
+✅ When to use which
+Property	Use Case
+clientX/Y	Absolute position in the viewport; good for dragging across multiple elements or for page-level calculations
+offsetX/Y	Relative to the target element; perfect for canvas drawing and hit detection
+_____________________________________________________________________________________________
