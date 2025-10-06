@@ -53,7 +53,7 @@ type Shapes =
 
 // create an object for the existing shapes
 const Existing_Shapes: Shapes[] = [];
-
+const Selected_Shapes:Shapes[]= []; // creatd an object for the selected shape 
 
 function initdraw(
     canvas: HTMLCanvasElement,
@@ -61,6 +61,7 @@ function initdraw(
     currentRef: RefObject<{ x: number; y: number }>,
     activeTool: RefObject<string>
 ) {
+
 
     console.log(activeTool.current)
     const ctx = canvas.getContext("2d");
@@ -119,6 +120,12 @@ function initdraw(
     };
 
 
+     function SelectShape(){
+        
+        
+     }
+
+
     function eraseAt(e: MouseEvent , ctx: CanvasRenderingContext2D ) {
         const x = e.offsetX;
         const y = e.offsetY;
@@ -159,57 +166,69 @@ function initdraw(
     };
 
 
+function isPointInsideShape(x: number, y: number, shape: Shapes): boolean {
+  const tolerance = 5; // small buffer around the stroke for realistic erasing
 
-    function isPointInsideShape(x: number, y: number, shape: Shapes): boolean {
-        if (shape.type === "rect") {
-            return (
-                x == shape.x ||
-                x == shape.x + shape.width ||
-                y == shape.y ||
-                y == shape.y + shape.height
-            );
-        }
-if (shape.type === "circle") {
-  const dx = x - shape.centerX;
-  const dy = y - shape.centerY;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  // Check if cursor is exactly on the circle's stroke
-  return Math.abs(distance - shape.radius) === 0;
+  // --- Rectangle ---
+  if (shape.type === "rect") {
+    const left = shape.x;
+    const right = shape.x + shape.width;
+    const top = shape.y;
+    const bottom = shape.y + shape.height;
+
+    const nearLeft = Math.abs(x - left) <= tolerance && y >= top && y <= bottom;
+    const nearRight = Math.abs(x - right) <= tolerance && y >= top && y <= bottom;
+    const nearTop = Math.abs(y - top) <= tolerance && x >= left && x <= right;
+    const nearBottom = Math.abs(y - bottom) <= tolerance && x >= left && x <= right;
+
+    return nearLeft || nearRight || nearTop || nearBottom;
+  }
+
+  // --- Circle ---
+  if (shape.type === "circle") {
+    const dx = x - shape.centerX;
+    const dy = y - shape.centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    // Near the circle edge (radius ± tolerance)
+    return Math.abs(distance - shape.radius) <= tolerance;
+  }
+
+  // --- Triangle ---
+  if (shape.type === "triangle") {
+    const { topX, topY, leftX, leftY, rightX, rightY } = shape;
+    const d1 = pointToLineDistance(x, y, { x1: topX, y1: topY, x2: leftX, y2: leftY });
+    const d2 = pointToLineDistance(x, y, { x1: leftX, y1: leftY, x2: rightX, y2: rightY });
+    const d3 = pointToLineDistance(x, y, { x1: rightX, y1: rightY, x2: topX, y2: topY });
+    // Cursor near any triangle side = “touching stroke”
+    return d1 <= tolerance || d2 <= tolerance || d3 <= tolerance;
+  }
+
+  // --- Line / Arrow ---
+  if (shape.type === "line" || shape.type === "arrow") {
+    const distance = pointToLineDistance(x, y, shape);
+    return distance <= tolerance;
+  }
+
+  // --- Text ---
+  if (shape.type === "text") {
+    const fontSize = 16;
+    const textWidth = shape.value.length * fontSize * 0.6;
+    const textHeight = fontSize;
+    const left = shape.x;
+    const right = shape.x + textWidth;
+    const top = shape.y - textHeight;
+    const bottom = shape.y;
+
+    const nearLeft = Math.abs(x - left) <= tolerance && y >= top && y <= bottom;
+    const nearRight = Math.abs(x - right) <= tolerance && y >= top && y <= bottom;
+    const nearTop = Math.abs(y - top) <= tolerance && x >= left && x <= right;
+    const nearBottom = Math.abs(y - bottom) <= tolerance && x >= left && x <= right;
+
+    return nearLeft || nearRight || nearTop || nearBottom;
+  }
+
+  return false;
 }
-
-if (shape.type === "triangle") {
-  const { topX, topY, leftX, leftY, rightX, rightY } = shape;
-  const d1 = pointToLineDistance(x, y, { x1: topX, y1: topY, x2: leftX, y2: leftY });
-  const d2 = pointToLineDistance(x, y, { x1: leftX, y1: leftY, x2: rightX, y2: rightY });
-  const d3 = pointToLineDistance(x, y, { x1: rightX, y1: rightY, x2: topX, y2: topY });
-  // Cursor must exactly touch one of the triangle sides
-  return d1 === 0 || d2 === 0 || d3 === 0;
-}
-
-        
-        
-
-        if (shape.type === "line" || shape.type === "arrow") {
-            const distance = pointToLineDistance(x, y, shape);
-            return distance < 6; // 6px tolerance for clicking near line
-        }
-
-        if (shape.type === "text") {
-            // approximate bounding box
-            const fontSize = 16;
-            const textWidth = shape.value.length * fontSize * 0.6;
-            const textHeight = fontSize;
-            return (
-                x == shape.x ||
-                x == shape.x + textWidth ||
-                y == shape.y ||
-                y == shape.y - textHeight
-            );
-        }
-
-        return false;
-    }
-
 
 
 
