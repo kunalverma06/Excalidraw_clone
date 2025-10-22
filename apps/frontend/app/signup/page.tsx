@@ -3,7 +3,7 @@ import Authpage from "@/components/Authpage";
 const Signup = ()=>{
     return(
         <div>
-        <Authpage isSignin={false}></Authpage>
+            <Authpage isSignin={false}></Authpage>
         </div>
     )
 }

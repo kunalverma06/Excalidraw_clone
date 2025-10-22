@@ -1,19 +1,16 @@
-"use client";
-import Navbar from "@/components/Navbar";
-import CanvasComp from "@/components/Canvas";
-import { use, useEffect, useRef, useState } from "react";
 
-
-
-
-
-export default function Canvas() {
-    
-   const activeTool = useRef("select")
+import { Canvas } from "./Canvas";
+export default   function CanvasPage({params}:{
+    params:{
+        roomId:string
+    }
+}) {
+    const roomId=  params.roomId;
+    console.log(roomId);
+   
         return (
         <div >
-            <Navbar activeTool={activeTool} />
-            <CanvasComp activeTool={activeTool} />
+            <Canvas roomId={roomId}/>
         </div>
     );
 }

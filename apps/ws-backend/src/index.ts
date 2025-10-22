@@ -1,100 +1,130 @@
-import { WebSocketServer ,WebSocket} from "ws";
-import jwt, { JwtPayload } from "jsonwebtoken"
+import WebSocket from "ws";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common";
+import { prisma} from "@repo/db"
+import { User } from "lucide-react";
+import { PrismaClient } from "../../../packages/db/generated/prisma";
+import { main } from "ts-node/dist/bin";
 
 
-const PORT = 8080;
 
-interface UserSchema{
-  Userid:string;
-  rooms:string[];
-  ws:WebSocket;
+const port = 8080
+const ws= new WebSocket.Server({port});
+
+
+
+interface User {
+  ws:WebSocket,
+  rooms:string[],
+  Userid: string
 }
 
-const Users:UserSchema[] = []
+const Users :User[] = []
 
 
 
 
-
-
-const wss = new WebSocketServer({ port: PORT });
-
- function chekUser( token:string )  {
-  try {const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-
-  const Userid = decoded.Userid 
-  
-  if(!decoded || !decoded.Userid){
-    console.log("inside")
+function checkAuth(token:string):string|null{
+  const decoded = jwt.verify(token,JWT_SECRET) as JwtPayload
+  console.log(decoded)
+  if(!decoded){
+    
     return null ;
   }
+
+
+  return decoded.Userid ;
+
+}
+
+ws.on("listening", () => {
+  console.log(`WebSocket server is running at ws://localhost:${port}`);
+});
+
+ws.on("connection",function  connection(ws , request){
   
-  return decoded.Userid
+  const url = request.url ;
+
+  if(!url){
+    ws.send(JSON.stringify({
+      type:"error",
+      messgae:"Missing Jwt, not a valid url"
+
+    })) 
+    ws.close()
+    return;
+  }
   
- }catch(e){
-  return null 
- }
- }
 
-
-  wss.on("connection",function connection(ws, req) {
-    
-    const url = req.url;
-    if(!url){
-      return;
-    }
-    
-
-    const queryParams = new URLSearchParams(url.substring(1));
-    const token = queryParams.get("token") || "";
-    const userId = chekUser(token)
-    console.log(userId)
-    
-    if( !userId){
-      
-      ws.close();
-      return null;
-    }
-    console.log("reached here")
-
-    Users.push({Userid:userId,rooms:[],ws})
-
-    ws.on("message", function message(data) {
-      const parsedData = JSON.parse(data as unknown as string);
-      
-      if(parsedData.type ==="join_room"){
-        const user = Users.find((user)=> user.ws=== ws)
-        user?.rooms.push(parsedData.roomId)
-        
-    }
-
-    if(parsedData.type === "leave_room"){
-      const user = Users.find((user)=> user.ws=== ws)
-      if(!user){
-        return
-      }
-      user.rooms= user.rooms.filter((roomId)=> roomId !== parsedData.roomId)
-    }
-    
-    if(parsedData.type === "chat"){
-      const roomId = parsedData.roomId;
-      const message = parsedData.message;
-
-      Users.forEach(user => {
-        if(user.rooms.includes(roomId)){
-          user.ws.send(JSON.stringify({
-            type:"chat",
-            message:message,
-            roomId
-
-          })
-        )
-      }})
-    }
+  const queryParams = new URLSearchParams(url.split('?') [1]);
+  const token = queryParams.get("token") || "";
+  const Userid = checkAuth(token);
   
+  if(!Userid){
+    ws.close() ;
+    return 
+  }
+
+  Users.push({
+    Userid,
+    rooms:[],
+    ws
   })
 
-  
-  
-  });
+
+ 
+  ws.on("message",async function message(data){
+    const parsedData = JSON.parse(data as unknown as string);
+    const roomId = parsedData.roomId
+
+    //join room
+    if(parsedData.type==="join_room"){
+      const user = Users.find(x=>x.ws === ws)
+      user?.rooms.push(parsedData.roomId);
+      console.log(`${user?.Userid} joined the room`)
+
+    }
+
+
+    //leave room logic
+    if(parsedData.type ==="leave_room"){
+      const user = Users.find(x=>x.ws===ws);
+      if (user) {
+        user.rooms = user.rooms.filter(r => r !== parsedData.roomId);
+      }
+    }
+
+    //draw logic 
+    if(parsedData.type ==="draw"){
+      const roomName = parsedData.roomName
+      const message = parsedData.message
+      const username= parsedData.username
+
+      await prisma.drawing.create({
+        data:{
+          roomId,
+          message,
+          userId: Userid, 
+          username
+        }
+      })
+
+
+      Users.forEach(user=>{
+        if(user.rooms.includes(roomId)){
+          user.ws.send(JSON.stringify({
+            type:"draw",
+            message,
+            roomId,
+            roomName
+          }));
+        }
+      })
+
+    
+
+    }
+
+  })
+
+})

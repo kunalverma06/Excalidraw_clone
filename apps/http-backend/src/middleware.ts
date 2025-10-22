@@ -4,16 +4,16 @@ import { JWT_SECRET } from "@repo/backend-common";
 
 
 interface CustomReq extends Request{
-    Userid?:string;
+    userId?:string;
 }
 
 export const middleware =(req:CustomReq ,res:Response, next:NextFunction)=>{
-    const token = req.headers["authorization"]?? "";
-    const decoded = jwt.verify(token,JWT_SECRET) as JwtPayload;
-
+    const token = req.cookies.token
+    
+    const decoded = jwt.verify(token,JWT_SECRET) as string;
     if (decoded){
-        req.Userid = decoded.Userid;
-        next()
+        req.userId = decoded;
+        next();
     }
     else{
         res.status(403).json({

@@ -1,2 +1,2 @@
-export { CreateRoomSchema, CreateUserSchema, SigninSchema } from "./type";
+export { CreateRoomSchema, CreateUserSchema, SigninSchema ,shapeSchema} from "./type";
 

@@ -1,5 +1,6 @@
 "use client"
 import Link from 'next/link';
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from 'react';
 import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
 
@@ -7,6 +8,7 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
 
+  const router = useRouter();
   useEffect(() => {
     setIsVisible(true);
     const handleMouseMove = (e: MouseEvent) => {
@@ -15,6 +17,17 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+
+  const handleStartDrawing=()=>{
+    const token = localStorage.getItem("token");
+    if(!token){
+      router.push("/signin")
+    }
+    else{
+      router.push("/canvas/123")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 overflow-hidden">
@@ -45,7 +58,7 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
         <div className={`flex items-center gap-6 transition-all duration-700 delay-200 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'}`}>
           <a href="#features" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Features</a>
           <a href="#about" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">About</a>
-          <button className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
+          <button onClick={()=>router.push("/signin")} className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
             Get Started
           </button>
         </div>

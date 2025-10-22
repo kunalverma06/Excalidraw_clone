@@ -106,3 +106,73 @@ Property	Use Case
 clientX/Y	Absolute position in the viewport; good for dragging across multiple elements or for page-level calculations
 offsetX/Y	Relative to the target element; perfect for canvas drawing and hit detection
 _____________________________________________________________________________________________
+                                            Problem 4
+ 
+    If we need to get the room id form canvas/[roomid] then the component of canvas should be server component so we have to shift the useclientlogic
+    to the other file .
+
+
+    1. You marked "use client" — ✅ correct, this makes the file a Client Component
+
+    But...
+
+    2. You also made the component async
+    export default async function Canvas(...)
+
+
+    That turns it into a Server Component again!
+    Because Client Components cannot be async functions — React can’t suspend them properly in the browser.
+
+_____________________________________________________________________________________________
+                                            Problem 5
+export const Canvas = ({roomId}:{roomId:string}) 
+
+here we have ({ roomId })
+This is object destructuring from the component’s props — so instead of writing props.roomId, we directly get roomId.
+
+but we cant do ({ roomId }: string)  // why not this?
+And TypeScript screams 😭
+
+Because:
+
+When you use object destructuring, the type after the colon (:) describes the entire object, not the inner property.
+
+So ({ roomId }: string) means:
+
+“Destructure roomId from something that is a string.”
+
+But… you can’t destructure a string like { roomId }.
+That only works if the input is an object with a roomId field.
+
+_____________________________________________________________________________________________
+                                                problem 6 
+
+                                                  
+   useEffect(()=>{
+    const ws = new WebSocket(WS_URL);
+    ws.onopen = ()=>{
+        setSocket(ws);
+    }
+
+   },[])
+
+Nice — you’re setting up a WebSocket connection in React using useEffect.
+Let’s break down what this code does, why it’s written this way, and what you might still need to handle 👇
+
+🧠 What’s happening line by line
+useEffect(() => {
+  const ws = new WebSocket(WS_URL);
+
+
+This runs once when the component mounts ([] dependency array = run only once).
+
+new WebSocket(WS_URL) connects to your backend WebSocket server (e.g. ws://localhost:3001).
+
+  ws.onopen = () => {
+    setSocket(ws);
+  };
+
+
+When the WebSocket successfully connects, it triggers the onopen event.
+
+You store the ws instance in React state using setSocket(ws) so you can send/receive messages elsewhere in your component.
