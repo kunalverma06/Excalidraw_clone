@@ -10,9 +10,11 @@ import { useRouter } from "next/navigation";
 type CanvasProp = {
     activeTool: React.RefObject<string>;
     roomId: string;
+    darkMode:boolean;
+   
 };
 
-const RoomCanvas = ({ activeTool, roomId }: CanvasProp) => {
+const RoomCanvas = ({ activeTool, roomId , darkMode }: CanvasProp) => {
     const startRef = useRef({ x: 0, y: 0 }); // use:store the intital values of x and y of shape
     const currentRef = useRef({ x: 0, y: 0 }) // use:store the current state of x and y 
     const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -56,7 +58,7 @@ const RoomCanvas = ({ activeTool, roomId }: CanvasProp) => {
     }
     return (
         <div >
-            <CanvasComp roomId={roomId} activeTool={activeTool} socket={socket} />
+            <CanvasComp roomId={roomId} activeTool={activeTool} socket={socket} darkMode={darkMode} />
 
 
         </div>

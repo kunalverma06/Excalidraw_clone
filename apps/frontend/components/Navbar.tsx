@@ -1,13 +1,26 @@
-import React, { RefObject, useState } from 'react';
-import { Square, Circle, ArrowRight, Eraser, Hand, Type, Minus, Triangle } from 'lucide-react';
+import React, { RefObject, useState, useEffect, SetStateAction } from 'react';
+import {
+  Square,
+  Circle,
+  ArrowRight,
+  Eraser,
+  Hand,
+  Type,
+  Minus,
+  Triangle,
+  Sun,
+  Moon,
+} from 'lucide-react';
 
 type NavbarProps = {
   activeTool: RefObject<string>;
+  darkMode: boolean
+  setDarkMode: React.Dispatch<SetStateAction<boolean>>
 };
 
-const Navbar = ({ activeTool }: NavbarProps) => {
-  // dummy state to force re-renders
+const Navbar = ({ activeTool, darkMode, setDarkMode }: NavbarProps) => {
   const [tick, setTick] = useState(0);
+
 
   const tools = [
     { id: 'select', icon: Hand, label: 'Select' },
@@ -22,12 +35,30 @@ const Navbar = ({ activeTool }: NavbarProps) => {
 
   const activeIndex = tools.findIndex(t => t.id === activeTool.current);
 
+  // Apply dark/light theme to <html>
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   return (
-    <div className=" absolute left-1/2 -translate-x-1/2 flex items-center p-4 ">
-      <div className="relative rounded-2xl shadow-lg border-2 z-10 border-gray-200 p-2 flex gap-1 overflow-hidden bg-red-300">
+    <div className="absolute left-1/2 -translate-x-1/2 flex items-center p-4">
+      <div
+        className={`
+          relative rounded-2xl shadow-lg border-2 z-10 p-2 flex gap-1 overflow-hidden 
+          transition-all duration-500
+        ${darkMode
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-pink-300/50 border-pink-400/50 backdrop-blur-md'}
+
+        `}
+      >
         {/* Animated background indicator */}
         <div
-          className="absolute top-2 h-[calc(100%-16px)] w-12 bg-gradient-to-br bg-gray-200/50 rounded-xl transition-all duration-300 ease-out z-20"
+          className="absolute top-2 h-[calc(100%-16px)] w-12 bg-gray-200/50 dark:bg-gray-300/50 rounded-xl transition-all duration-300 ease-out z-20"
           style={{ transform: `translateX(${activeIndex * 3.24}rem)` }}
         />
 
@@ -40,36 +71,41 @@ const Navbar = ({ activeTool }: NavbarProps) => {
               key={tool.id}
               onClick={() => {
                 activeTool.current = tool.id;
-                setTick(t => t + 1); // 🔥 force re-render
-                console.log(tool.id);
+                setTick(t => t + 1);
               }}
               className={`
                 relative w-12 h-12 flex items-center justify-center rounded-xl
                 transition-all duration-300 ease-out group
                 ${isActive
-                  ? 'text-white scale-110 '
-                  : 'text-gray-600 hover:bg-gray-100 hover:scale-105'}
+                  ? 'text-white scale-110'
+                  : darkMode
+                    ? 'text-gray-300 hover:bg-gray-700 hover:scale-105'
+                    : 'text-gray-700 hover:bg-gray-100 hover:scale-105'}
               `}
               title={tool.label}
             >
               <Icon
-                className={`
-                  w-5 h-5 transition-all duration-300 
-                  ${isActive ? 'scale-110' : 'group-hover:scale-110 '}
-                `}
+                className={`w-5 h-5 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}
                 strokeWidth={isActive ? 2.5 : 2}
               />
-              <span className="
-                absolute -bottom-10 left-1/2 -translate-x-1/2 px-3 py-1.5
-                bg-gray-900 text-black text-sm rounded-md whitespace-nowrap
-                opacity-100 pointer-events-none
-                transition-opacity duration-200 z-50 
-              ">
-                {tool.label}
-              </span>
             </button>
           );
         })}
+
+        {/* 🌞 / 🌙 toggle button */}
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          className={`
+            relative w-12 h-12 flex items-center justify-center rounded-xl
+            transition-all duration-300 ease-out
+            ${darkMode
+              ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600'
+              : 'bg-white text-gray-800 hover:bg-gray-200'}
+          `}
+          title="Toggle Dark Mode"
+        >
+          {darkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+        </button>
       </div>
     </div>
   );

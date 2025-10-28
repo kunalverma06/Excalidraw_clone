@@ -168,9 +168,9 @@ app.post("/create-room", middleware, async (req: CustomReq, res) => {
 
 })
 
-app.get("/elements/:roomId", (req, res) => {
+app.get("/elements/:roomId", async (req, res) => {
   const roomId = req.params.roomId;
-  const drawings = prisma.drawing.findMany({
+  const drawings = await prisma.drawing.findMany({
     where: { roomId: roomId },
   })
 
@@ -182,6 +182,7 @@ app.get("/elements/:roomId", (req, res) => {
 app.get("/check-auth",  (req, res) => {
   const token = req.cookies.token;
   if (!token) {
+    console.log("false");
     return res.json({ authenticated: false })
   }
   try {

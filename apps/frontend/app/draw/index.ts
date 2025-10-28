@@ -1,10 +1,10 @@
 
 import { Shapes } from "lucide-react";
-import { act, RefObject, useRef } from "react";
+import { act, RefObject, useEffect, useRef } from "react";
 import axios from "axios";
-import {JWT_SECRET} from "@repo/backend-common"
+import { JWT_SECRET } from "@repo/backend-common"
 import { HttpBackend } from "./config";
-import {shapeSchema} from "@repo/zod-types"
+import { shapeSchema } from "@repo/zod-types";
 import { json } from "stream/consumers";
 
 // creating the type shape
@@ -65,18 +65,19 @@ interface Select {
 
 
 // create an object for the existing shapes
-let Existing_Shapes:Shapes[] = [];
+let Existing_Shapes: Shapes[] = [];
 const Selected_Shapes: Shapes[] = []; // creatd an object for the selected shape 
 let Select_Rect: Select = { x: 0, y: 0, width: 0, height: 0 }; // create an object which will take rect args to see move the shapes
 
 
-async function  initdraw(
+async function initdraw(
     canvas: HTMLCanvasElement,
     startRef: RefObject<{ x: number; y: number }>,
     currentRef: RefObject<{ x: number; y: number }>,
     activeTool: RefObject<string>,
-    roomId:string,
-    socket:WebSocket
+    roomId: string,
+    socket: WebSocket,
+    darkMode: boolean,
 ) {
     Existing_Shapes = await getExistingShapes(roomId);
     console.log(activeTool.current)
@@ -85,15 +86,16 @@ async function  initdraw(
         return;
     }
 
-     socket.onmessage=(event)=>{
+    socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
 
-        if(message.type==="draw"){
+        if (message.type === "draw") {
             const parsedShape = JSON.parse(message.message)
             Existing_Shapes.push(parsedShape)
-            ctx.clearRect(0, 0, canvas.width, canvas.height);``
-            
+            ctx.clearRect(0, 0, canvas.width, canvas.height); ``
+
         }
+
     }
 
     let clicked = false;
@@ -112,14 +114,19 @@ async function  initdraw(
         clicked = false;
         const { startX, startY } = { startX: startRef.current.x, startY: startRef.current.y }
         const { endX, endY } = { endX: currentRef.current.x, endY: currentRef.current.y }
-        const shape = CreateShape({ x: startX, y: startY }, { x: endX, y: endY }, activeTool, ctx);
+        const shape = CreateShape({ x: startX, y: startY }, { x: endX, y: endY }, activeTool, ctx ,darkMode);
 
         if (shape) {
             Addshapes(shape);
         }
-        
-        
-        
+
+        socket.send(JSON.stringify({
+            type: "draw",
+            message: JSON.stringify(shape),
+        }));
+
+
+
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -138,22 +145,25 @@ async function  initdraw(
             const { width, height } = canvas
 
             // redraw all saved shapes
-            Existing_Draw(ctx, { width, height })
+            Existing_Draw(ctx, { width, height },darkMode)
             // draw the preview rect
 
-            CreateShape({ x: x, y: y }, { x: current_x, y: current_y }, activeTool, ctx)
+            CreateShape({ x: x, y: y }, { x: current_x, y: current_y }, activeTool, ctx,darkMode)
 
-            
+
 
 
         }
 
-         if (activeTool.current === "select") {
+        if (activeTool.current === "select") {
             SelectShape(ctx);
-            Moveshape(e , ctx )
+            Moveshape(e, ctx)
         }
 
     };
+
+
+    
 
 
     const SelectShape = (ctx: CanvasRenderingContext2D) => {
@@ -172,7 +182,7 @@ async function  initdraw(
 
             }
         }
-        
+
 
 
     }
@@ -234,7 +244,7 @@ async function  initdraw(
     }
 
 
-    function Moveshape(e: MouseEvent ,ctx:CanvasRenderingContext2D) {
+    function Moveshape(e: MouseEvent, ctx: CanvasRenderingContext2D) {
         const dx = e.movementX
         const dy = e.movementY
 
@@ -268,7 +278,7 @@ async function  initdraw(
                     break;
             }
         }
-        Existing_Draw(ctx, { width: canvas.width, height: canvas.height });
+        Existing_Draw(ctx, { width: canvas.width, height: canvas.height },darkMode);
         return
 
     }
@@ -285,7 +295,7 @@ async function  initdraw(
                 Existing_Shapes.splice(i, 1); // remove shape
             }
         }
-        Existing_Draw(ctx, { width: canvas.width, height: canvas.height });
+        Existing_Draw(ctx, { width: canvas.width, height: canvas.height },darkMode);
     }
 
 
@@ -296,7 +306,7 @@ async function  initdraw(
             if (lastShape?.type === "text") {
 
                 if (lastShape.value === "write") {
-                    console.log("inside");
+                 
                     lastShape.value = e.key
                 }
 
@@ -308,7 +318,7 @@ async function  initdraw(
                     lastShape.value += e.key;
                 }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                Existing_Draw(ctx, { width: canvas.width, height: canvas.height });
+                Existing_Draw(ctx, { width: canvas.width, height: canvas.height },darkMode);
             }
         }
     };
@@ -400,11 +410,13 @@ function Addshapes(shape: Shapes) {
 }
 
 
-function Existing_Draw(ctx: CanvasRenderingContext2D, canvas: { width: number, height: number }) {
+export function Existing_Draw(ctx: CanvasRenderingContext2D, canvas: { width: number, height: number },darkMode:boolean) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = darkMode ? "white" : "black";
+    
     Existing_Shapes.forEach((shape) => {
         if (shape.type === "rect") {
-
+            
             ctx.strokeRect(shape.x, shape.y, shape.width, shape.height)
         }
         if (shape.type === "circle") {
@@ -453,14 +465,15 @@ function CreateShape(
     start: { x: number; y: number },
     end: { x: number; y: number },
     activeTool: RefObject<string>,
-    ctx: CanvasRenderingContext2D
+    ctx: CanvasRenderingContext2D,
+    darkMode:boolean
 ): Shapes | undefined {
     const startX = start.x;
     const startY = start.y;
     const endX = end.x;
     const endY = end.y;
 
-
+    ctx.strokeStyle = darkMode ? "white" : "black";
     if (activeTool.current === "select") {
 
         const shape = { type: "select", x: startX, y: startY, width: endX - startX, height: endY - startY }
@@ -470,7 +483,7 @@ function CreateShape(
         // Select_Rect.y = shape.y;
         // Select_Rect.width = shape.width;
         // Select_Rect.height = shape.height;
-         Object.assign(Select_Rect, shape);  // the above commented code is same as this line 
+        Object.assign(Select_Rect, shape);  // the above commented code is same as this line 
 
     }
 
@@ -589,23 +602,29 @@ function pointToLineDistance(
 }
 
 async function getExistingShapes(roomId: string): Promise<Shapes[]> {
-   try{ const res = await axios.get(`${HttpBackend}/elements/${roomId}`);
-   
-    const shapes =res.data.drawings;
+    try {
+        const res = await axios.get(`${HttpBackend}/elements/${roomId}`);
+        const shapes = res.data.drawings;
 
-    const Existing_Shapes = shapes.map((x:{shapes:string})=>{
-        const  shapesData = JSON.parse(x.shapes)
-        const Data = shapeSchema.safeParse(shapesData)
-        if (Data.success) {
-                return Data.data;
-            }
-            console.warn("Invalid shape data:", shapesData);
-            return null; // skip invalid shape
-    })
-    return Existing_Shapes
-}catch(err){
-    console.log("Failed to fetch shapes",err)
-    return [];
-}
+        const parsedShapes: Shapes[] = shapes
+            .map((item: { shapes: string }) => {
+                try {
+                    const shapeData = JSON.parse(item.shapes);
+                    const parsed = shapeSchema.safeParse(shapeData);
+                    if (parsed.success) return parsed.data;
+                    console.warn("Invalid shape data:", shapeData);
+                    return null;
+                } catch (err) {
+                    console.error("Failed to parse shape JSON:", err);
+                    return null;
+                }
+            })
+            .filter((s: any): s is Shapes => s !== null); // remove invalid ones
+
+        return parsedShapes;
+    } catch (err) {
+        console.log("Failed to fetch shapes", err)
+        return [];
+    }
 
 }

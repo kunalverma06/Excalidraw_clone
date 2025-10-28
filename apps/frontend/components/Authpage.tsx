@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import Signin from "@/app/signin/page";
 import { useRef } from "react";
 import { HttpBackend } from "@/app/draw/config";
-import { SigninSchema, CreateUserSchema } from "@repo/zod-types";
+import { SigninSchema, CreateUserSchema } from "../../../packages/zod-types/src";
 import { parse } from "path";
 import { randomUUID, UUID } from "crypto";
 import Cookies from "js-cookie";
@@ -38,23 +38,7 @@ const AuthPage = ({ isSignin }: Signin) => {
 
 
 
-  useEffect(() => {
-    setLoading(true);
-    axios.get(`${HttpBackend}/check-auth`, { withCredentials: true })
-      .then(res => {
-        if (res.data.authenticated) {
-          console.log(res.data.userId)
-          localStorage.setItem("userId", res.data.userId);
-          setTimeout(() => {
-            setLoading(false);
-            router.push("/dashboard");
-          }, 1000);
 
-          
-        }
-      });
-
-  }, [])
 
 
   let timer = useRef<NodeJS.Timeout | null>(null);

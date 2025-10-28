@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Users, Calendar, Clock, Copy, ExternalLink, Trash2, Search, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import { HttpBackend } from '@/app/draw/config';
-import { CreateRoomSchema } from '@repo/zod-types';
+import { CreateRoomSchema } from '../../../../packages/zod-types/src';
 import {useRouter} from 'next/navigation';
 
 

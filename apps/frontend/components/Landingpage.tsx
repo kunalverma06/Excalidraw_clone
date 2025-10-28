@@ -1,14 +1,31 @@
-"use client"
+"use client";
 import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from 'react';
 import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
+import axios from 'axios';
+import { HttpBackend } from '@/app/draw/config';
 
- function LandingPage() {
+function LandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
-
   const router = useRouter();
+  const [signedIn, setSignedIn]= useState(false)
+
+  useEffect(() => {
+    console.log("this is running");
+    axios.get(`${HttpBackend}/check-auth`, { withCredentials: true })
+      .then(res => {
+        if (res.data.authenticated) {
+          console.log("kuch bhi");
+          setSignedIn(true);
+          console.log(signedIn);
+          console.log(res.data.userId);
+          localStorage.setItem("userId", res.data.userId);
+        }
+      });
+  }, [isVisible]);
+
   useEffect(() => {
     setIsVisible(true);
     const handleMouseMove = (e: MouseEvent) => {
@@ -18,22 +35,23 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-
-  const handleStartDrawing=()=>{
-    const token = localStorage.getItem("token");
-    if(!token){
-      router.push("/signin")
-    }
-    else{
-      router.push("/canvas/123")
-    }
-  }
+  const handleStartDrawing = () => {
+    console.log("Get Started clicked");
+        if (!signedIn) {
+          console.log("Not signed in");
+          router.push("/signin");
+        } else {
+          router.push("/dashboard");
+        }
+      }
+    
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 overflow-hidden">
       {/* Animated background elements */}
       <div className="fixed inset-0 pointer-events-none">
-        <div 
+        <div
           className="absolute w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"
           style={{
             left: `${mousePosition.x / 20}px`,
@@ -58,7 +76,10 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
         <div className={`flex items-center gap-6 transition-all duration-700 delay-200 ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'}`}>
           <a href="#features" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">Features</a>
           <a href="#about" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">About</a>
-          <button onClick={()=>router.push("/signin")} className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
+          <button
+            onClick={handleStartDrawing}
+            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium"
+          >
             Get Started
           </button>
         </div>
@@ -71,7 +92,7 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
             <Sparkles className="w-4 h-4 text-purple-600" />
             <span className="text-sm font-medium text-purple-700">Free & Open Source</span>
           </div>
-          
+
           <h1 className="text-7xl font-bold mb-6 leading-tight">
             <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
               Sketch Ideas,
@@ -79,19 +100,19 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
             <br />
             <span className="text-gray-900">Build Together</span>
           </h1>
-          
+
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            A powerful, intuitive drawing tool for creating beautiful diagrams, wireframes, 
+            A powerful, intuitive drawing tool for creating beautiful diagrams, wireframes,
             and illustrations. Collaborate in real-time with your team.
           </p>
-          
+
           <div className="flex items-center justify-center gap-4">
-            <Link href="/canvas/234">
-                <button className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg flex items-center gap-2">
-                  Start Drawing
-                  <Zap className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                </button>
-            </Link>
+            
+              <button onClick={handleStartDrawing}className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg flex items-center gap-2">
+                Start Drawing
+                <Zap className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+              </button>
+            
             <button className="px-8 py-4 bg-white text-gray-700 rounded-full hover:shadow-lg transition-all duration-300 font-semibold text-lg border-2 border-gray-200 flex items-center gap-2">
               <Github className="w-5 h-5" />
               View on GitHub
@@ -104,7 +125,6 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
           <div className="relative mx-auto max-w-5xl">
             <div className="absolute -inset-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-20 animate-pulse" />
             <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-              {/* Mock toolbar */}
               <div className="flex items-center gap-2 p-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex gap-2">
                   <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center hover:bg-purple-200 transition-colors cursor-pointer">
@@ -123,10 +143,8 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
                   <Download className="w-5 h-5 text-gray-400" />
                 </div>
               </div>
-              {/* Mock canvas */}
               <div className="aspect-video bg-gradient-to-br from-gray-50 to-white p-12 flex items-center justify-center">
                 <svg viewBox="0 0 400 200" className="w-full max-w-md">
-                  {/* Animated drawing */}
                   <rect x="50" y="50" width="100" height="80" fill="none" stroke="#9333ea" strokeWidth="3" className="animate-pulse" />
                   <circle cx="250" cy="90" r="40" fill="none" stroke="#3b82f6" strokeWidth="3" className="animate-pulse delay-300" />
                   <path d="M 150 90 L 210 90" stroke="#8b5cf6" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-pulse delay-500" />
@@ -169,7 +187,7 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
               description: "Export to PNG, SVG, or clipboard with one click"
             }
           ].map((feature, i) => (
-            <div 
+            <div
               key={i}
               className="group p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
             >
@@ -189,7 +207,10 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
           <div className="absolute inset-0 bg-black opacity-0 hover:opacity-5 transition-opacity" />
           <h2 className="text-4xl font-bold text-white mb-4">Ready to start creating?</h2>
           <p className="text-xl text-purple-100 mb-8">Join thousands of creators using DrawFlow</p>
-          <button className="px-10 py-4 bg-white text-purple-600 rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-bold text-lg">
+          <button
+            onClick={handleStartDrawing}
+            className="px-10 py-4 bg-white text-purple-600 rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-bold text-lg"
+          >
             Get Started for Free
           </button>
         </div>
@@ -197,4 +218,5 @@ import { Pencil, Zap, Users, Download, Github, Sparkles } from 'lucide-react';
     </div>
   );
 }
+
 export default LandingPage;
