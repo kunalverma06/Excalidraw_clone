@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - HttpBackend=http://localhost:8080
+      - WS_URL=ws://localhost:9000
+    depends_on:
+      - http-backend
+      - ws-backend
+
+  http-backend:
+    build: .
+    command: pnpm --filter http-backend run dev
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL="postgresql://neondb_owner:npg_J6znv7TCdEQx@ep-holy-resonance-ad56n9ja-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  ws-backend:
+    build: .
+    command: pnpm --filter ws-backend run dev
+    ports:
+      - "9000:9000"
+
+  web:
+    build: .
+    command: pnpm --filter web run dev
+    ports:
+      - "3000:3000"

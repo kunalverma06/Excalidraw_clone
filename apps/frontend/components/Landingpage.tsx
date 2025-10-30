@@ -108,7 +108,7 @@ function LandingPage() {
 
           <div className="flex items-center justify-center gap-4">
             
-              <button onClick={handleStartDrawing}className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg flex items-center gap-2">
+              <button onClick={handleStartDrawing} className="group px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold text-lg flex items-center gap-2">
                 Start Drawing
                 <Zap className="w-5 h-5 group-hover:rotate-12 transition-transform" />
               </button>

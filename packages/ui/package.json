@@ -3,7 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
-    "./*": "./src/*.tsx"
+    "./Input": {
+      "import": "./src/input.tsx",
+      "require": "./src/input.tsx"
+    },
+    "./button": {
+      "import": "./src/button.tsx",
+      "require": "./src/button.tsx"
+    }
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
