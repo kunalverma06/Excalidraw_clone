@@ -7,11 +7,13 @@ import { prisma } from "@repo/db"
 import { hash, compare } from "bcrypt";
 import { PrismaClient } from "../../../packages/db/generated/prisma";
 import cors from "cors"
+import dotenv from "dotenv"
 import cookieParser from "cookie-parser";
 
 
 const app = express();
 const PORT = 9000;
+dotenv.config();
 app.use(express.json());
 app.use(cookieParser())
 app.use(cors({

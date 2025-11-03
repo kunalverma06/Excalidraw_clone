@@ -1,16 +1,34 @@
 import { RefObject } from "react";
 import axios from "axios";
+import { JWT_SECRET } from "@repo/backend-common";
 import { HttpBackend } from "./config";
 import { shapeSchema } from "@repo/zod-types";
 
-// -----------------------------
-// Shape Types
-// -----------------------------
-export type Shape =
+// -------------------- TYPES --------------------
+
+type Shapes =
   | { type: "rect"; x: number; y: number; width: number; height: number }
   | { type: "circle"; centerX: number; centerY: number; radius: number }
-  | { type: "triangle"; topX: number; topY: number; leftX: number; leftY: number; rightX: number; rightY: number }
-  | { type: "arrow"; x1: number; y1: number; x2: number; y2: number; leftX: number; leftY: number; rightX: number; rightY: number }
+  | {
+      type: "triangle";
+      topX: number;
+      topY: number;
+      leftX: number;
+      leftY: number;
+      rightX: number;
+      rightY: number;
+    }
+  | {
+      type: "arrow";
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      leftX: number;
+      leftY: number;
+      rightX: number;
+      rightY: number;
+    }
   | { type: "text"; x: number; y: number; value: string }
   | { type: "line"; x1: number; y1: number; x2: number; y2: number };
 
@@ -21,157 +39,107 @@ interface Select {
   height: number;
 }
 
-interface DrawMessage {
-  type: "draw";
-  roomId: string;
-  username: string;
-  message: string;
-}
-
-// -----------------------------
-// Globals
-// -----------------------------
-let Existing_Shapes: Shape[] = [];
+// -------------------- GLOBALS --------------------
+let Existing_Shapes: Shapes[] = [];
+const Selected_Shapes: Shapes[] = [];
 let Select_Rect: Select = { x: 0, y: 0, width: 0, height: 0 };
 
-// -----------------------------
-// Safe WebSocket Sender
-// -----------------------------
-function safeSend(socket: WebSocket, data: any): void {
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(data));
-  } else {
-    console.warn("⚠️ Tried to send on a closed WebSocket");
-  }
-}
+// -------------------- MAIN FUNCTION --------------------
 
-// -----------------------------
-// Main Draw Initialization
-// -----------------------------
-export default async function initdraw(
+async function initdraw(
   canvas: HTMLCanvasElement,
   startRef: RefObject<{ x: number; y: number }>,
   currentRef: RefObject<{ x: number; y: number }>,
   activeTool: RefObject<string>,
   roomId: string,
   socket: WebSocket,
-  darkMode: boolean
-): Promise<void> {
-  // Fetch old shapes for this room
+  darkMode: string
+) {
   Existing_Shapes = await getExistingShapes(roomId);
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  // Draw previously saved shapes
-  Existing_Draw(ctx, { width: canvas.width, height: canvas.height }, darkMode);
-
-  // Handle incoming WebSocket messages
-  socket.onmessage = (event: MessageEvent<string>): void => {
-    try {
-      const message = JSON.parse(event.data);
-      if (message.type === "draw" && message.roomId === roomId) {
-        const parsedShape: Shape = JSON.parse(message.message);
-        Existing_Shapes.push(parsedShape);
-        Existing_Draw(ctx, { width: canvas.width, height: canvas.height }, darkMode);
-      }
-    } catch (err) {
-      console.error("Socket message error:", err);
+  // Handle incoming draw events
+  socket.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.type === "draw") {
+      const parsedShape = JSON.parse(message.message);
+      Existing_Shapes.push(parsedShape);
+      Existing_Draw(ctx, canvas, darkMode);
     }
   };
 
   let clicked = false;
 
-  const handleMouseDown = (e: MouseEvent): void => {
-    if (activeTool.current === "eraser") eraseAt(e, ctx);
+  const handleMouseDown = (e: MouseEvent) => {
+    if (activeTool.current === "eraser") eraseAt(e, ctx, canvas, darkMode);
     clicked = true;
     startRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  const handleMouseUp = (): void => {
+  const handleMouseUp = () => {
     clicked = false;
-    if (!startRef.current || !currentRef.current) return;
+    const startX = startRef.current?.x ?? 0;
+    const startY = startRef.current?.y ?? 0;
+    const endX = currentRef.current?.x ?? 0;
+    const endY = currentRef.current?.y ?? 0;
 
-    const { x: startX, y: startY } = startRef.current;
-    const { x: endX, y: endY } = currentRef.current;
-    const shape = CreateShape({ x: startX, y: startY }, { x: endX, y: endY }, activeTool, ctx, darkMode);
-
-    if (shape) {
-      AddShape(shape);
-      const message: DrawMessage = {
-        type: "draw",
-        roomId,
-        username: localStorage.getItem("username") || "Anonymous",
-        message: JSON.stringify(shape),
-      };
-      safeSend(socket, message); // ✅ safe send to prevent CLOSING/CLOSED errors
-    }
+    const shape = CreateShape({ x: startX, y: startY }, { x: endX, y: endY }, activeTool, ctx);
+    if (shape) Addshapes(shape);
   };
 
-  const handleMouseMove = (e: MouseEvent): void => {
+  const handleMouseMove = (e: MouseEvent) => {
     if (clicked && activeTool.current === "eraser") {
-      eraseAt(e, ctx);
+      eraseAt(e, ctx, canvas, darkMode);
       return;
     }
 
-    if (clicked && startRef.current) {
+    if (clicked) {
       currentRef.current = { x: e.clientX, y: e.clientY };
-      const { x, y } = startRef.current;
-      const { x: currentX, y: currentY } = currentRef.current!;
-      Existing_Draw(ctx, { width: canvas.width, height: canvas.height }, darkMode);
-      CreateShape({ x, y }, { x: currentX, y: currentY }, activeTool, ctx, darkMode);
+      Existing_Draw(ctx, canvas, darkMode);
+
+      const start = startRef.current!;
+      const end = currentRef.current!;
+      CreateShape(start, end, activeTool, ctx);
     }
 
     if (activeTool.current === "select") {
       SelectShape(ctx);
-      MoveShape(e, ctx);
+      Moveshape(e, ctx, darkMode);
     }
   };
 
-  const handleText = (e: KeyboardEvent): void => {
+  const handleText = (e: KeyboardEvent) => {
     if (activeTool.current === "text") {
       const lastShape = Existing_Shapes[Existing_Shapes.length - 1];
       if (lastShape?.type === "text") {
         if (lastShape.value === "write") lastShape.value = e.key;
         else if (e.key === "Backspace") lastShape.value = lastShape.value.slice(0, -1);
         else if (e.key.length === 1) lastShape.value += e.key;
-
-        Existing_Draw(ctx, { width: canvas.width, height: canvas.height }, darkMode);
+        Existing_Draw(ctx, canvas, darkMode);
       }
     }
   };
 
-  // Add Event Listeners
+  // -------------------- EVENT LISTENERS --------------------
   canvas.addEventListener("mousedown", handleMouseDown);
   canvas.addEventListener("mouseup", handleMouseUp);
   canvas.addEventListener("mousemove", handleMouseMove);
   document.addEventListener("keydown", handleText);
-
-  // Handle socket close gracefully
-  socket.onclose = () => {
-    console.warn("🔌 WebSocket closed.");
-  };
-
-  socket.onerror = (err) => {
-    console.error("WebSocket error:", err);
-  };
 }
 
-// -----------------------------
-// Utility Functions
-// -----------------------------
-function AddShape(shape: Shape): void {
+// -------------------- SHAPE HELPERS --------------------
+
+function Addshapes(shape: Shapes) {
   Existing_Shapes.push(shape);
 }
 
-export function Existing_Draw(
-  ctx: CanvasRenderingContext2D,
-  canvas: { width: number; height: number },
-  darkMode: boolean
-): void {
+export function Existing_Draw(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, darkMode: string) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = darkMode ? "white" : "black";
+  ctx.fillStyle = darkMode ? "white" : "black";
 
-  for (const shape of Existing_Shapes) {
+  Existing_Shapes.forEach((shape) => {
     switch (shape.type) {
       case "rect":
         ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
@@ -193,126 +161,240 @@ export function Existing_Draw(
         ctx.beginPath();
         ctx.moveTo(shape.x1, shape.y1);
         ctx.lineTo(shape.x2, shape.y2);
-        ctx.moveTo(shape.x2, shape.y2);
         ctx.lineTo(shape.leftX, shape.leftY);
         ctx.moveTo(shape.x2, shape.y2);
         ctx.lineTo(shape.rightX, shape.rightY);
         ctx.stroke();
-        break;
-      case "text":
-        ctx.font = "16px Arial";
-        ctx.fillText(shape.value, shape.x, shape.y);
         break;
       case "line":
         ctx.beginPath();
         ctx.moveTo(shape.x1, shape.y1);
         ctx.lineTo(shape.x2, shape.y2);
         ctx.stroke();
-        ctx.closePath();
+        break;
+      case "text":
+        ctx.font = "16px Arial";
+        ctx.fillText(shape.value, shape.x, shape.y);
+        break;
+    }
+  });
+}
+
+// -------------------- ERASE --------------------
+
+function eraseAt(e: MouseEvent, ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, darkMode: string) {
+  const x = e.offsetX;
+  const y = e.offsetY;
+
+  for (let i = Existing_Shapes.length - 1; i >= 0; i--) {
+    const shape = Existing_Shapes[i];
+    if (isPointOnShape(x, y, shape)) Existing_Shapes.splice(i, 1);
+  }
+
+  Existing_Draw(ctx, canvas, darkMode);
+}
+
+// -------------------- UTILITIES --------------------
+
+function isPointOnShape(x: number, y: number, shape: Shapes): boolean {
+  const tolerance = 5;
+  if (shape.type === "rect") {
+    const left = shape.x;
+    const right = shape.x + shape.width;
+    const top = shape.y;
+    const bottom = shape.y + shape.height;
+    return (
+      Math.abs(x - left) <= tolerance ||
+      Math.abs(x - right) <= tolerance ||
+      Math.abs(y - top) <= tolerance ||
+      Math.abs(y - bottom) <= tolerance
+    );
+  }
+
+  if (shape.type === "circle") {
+    const dx = x - shape.centerX;
+    const dy = y - shape.centerY;
+    return Math.abs(Math.sqrt(dx * dx + dy * dy) - shape.radius) <= tolerance;
+  }
+
+  if (shape.type === "line" || shape.type === "arrow") {
+    return pointToLineDistance(x, y, shape) <= tolerance;
+  }
+
+  return false;
+}
+
+function Moveshape(e: MouseEvent, ctx: CanvasRenderingContext2D, darkMode: string) {
+  const dx = e.movementX;
+  const dy = e.movementY;
+  for (const shape of Selected_Shapes) {
+    switch (shape.type) {
+      case "rect":
+        shape.x += dx;
+        shape.y += dy;
+        break;
+      case "circle":
+        shape.centerX += dx;
+        shape.centerY += dy;
+        break;
+      case "triangle":
+        shape.topX += dx;
+        shape.topY += dy;
+        shape.leftX += dx;
+        shape.leftY += dy;
+        shape.rightX += dx;
+        shape.rightY += dy;
+        break;
+      case "arrow":
+      case "line":
+        shape.x1 += dx;
+        shape.y1 += dy;
+        shape.x2 += dx;
+        shape.y2 += dy;
+        if (shape.type === "arrow") {
+          shape.leftX += dx;
+          shape.leftY += dy;
+          shape.rightX += dx;
+          shape.rightY += dy;
+        }
+        break;
+      case "text":
+        shape.x += dx;
+        shape.y += dy;
         break;
     }
   }
+  Existing_Draw(ctx, ctx.canvas, darkMode);
 }
 
 function CreateShape(
   start: { x: number; y: number },
   end: { x: number; y: number },
   activeTool: RefObject<string>,
-  ctx: CanvasRenderingContext2D,
-  darkMode: boolean
-): Shape | undefined {
-  const { x: startX, y: startY } = start;
-  const { x: endX, y: endY } = end;
-  ctx.strokeStyle = darkMode ? "white" : "black";
+  ctx: CanvasRenderingContext2D
+): Shapes | undefined {
+  const startX = start.x,
+    startY = start.y,
+    endX = end.x,
+    endY = end.y;
 
   switch (activeTool.current) {
-    case "rectangle":
-      const rect: Shape = { type: "rect", x: startX, y: startY, width: endX - startX, height: endY - startY };
-      ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-      return rect;
+    case "rectangle": {
+      const shape: Shapes = { type: "rect", x: startX, y: startY, width: endX - startX, height: endY - startY };
+      ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+      return shape;
+    }
 
-    case "circle":
+    case "circle": {
       const centerX = (startX + endX) / 2;
       const centerY = (startY + endY) / 2;
       const radius = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2) / 2;
+      const shape: Shapes = { type: "circle", centerX, centerY, radius };
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
       ctx.stroke();
-      return { type: "circle", centerX, centerY, radius };
+      return shape;
+    }
 
-    case "line":
+    case "triangle": {
+      const shape: Shapes = {
+        type: "triangle",
+        topX: (startX + endX) / 2,
+        topY: startY,
+        leftX: startX,
+        leftY: endY,
+        rightX: endX,
+        rightY: endY,
+      };
+      ctx.beginPath();
+      ctx.moveTo(shape.topX, shape.topY);
+      ctx.lineTo(shape.leftX, shape.leftY);
+      ctx.lineTo(shape.rightX, shape.rightY);
+      ctx.closePath();
+      ctx.stroke();
+      return shape;
+    }
+
+    case "line": {
+      const shape: Shapes = { type: "line", x1: startX, y1: startY, x2: endX, y2: endY };
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
       ctx.stroke();
-      return { type: "line", x1: startX, y1: startY, x2: endX, y2: endY };
+      return shape;
+    }
 
-    case "text":
-      const text: Shape = { type: "text", x: startX, y: startY, value: "write" };
-      ctx.font = "16px Arial";
-      ctx.fillText(text.value, text.x, text.y);
-      return text;
-
-    case "arrow":
+    case "arrow": {
       const angle = Math.atan2(endY - startY, endX - startX);
       const headLen = 10;
-      const leftX = endX - headLen * Math.cos(angle - Math.PI / 6);
-      const leftY = endY - headLen * Math.sin(angle - Math.PI / 6);
-      const rightX = endX - headLen * Math.cos(angle + Math.PI / 6);
-      const rightY = endY - headLen * Math.sin(angle + Math.PI / 6);
+      const shape: Shapes = {
+        type: "arrow",
+        x1: startX,
+        y1: startY,
+        x2: endX,
+        y2: endY,
+        leftX: endX - headLen * Math.cos(angle - Math.PI / 6),
+        leftY: endY - headLen * Math.sin(angle - Math.PI / 6),
+        rightX: endX - headLen * Math.cos(angle + Math.PI / 6),
+        rightY: endY - headLen * Math.sin(angle + Math.PI / 6),
+      };
       ctx.beginPath();
       ctx.moveTo(startX, startY);
       ctx.lineTo(endX, endY);
+      ctx.lineTo(shape.leftX, shape.leftY);
       ctx.moveTo(endX, endY);
-      ctx.lineTo(leftX, leftY);
-      ctx.moveTo(endX, endY);
-      ctx.lineTo(rightX, rightY);
+      ctx.lineTo(shape.rightX, shape.rightY);
       ctx.stroke();
-      return { type: "arrow", x1: startX, y1: startY, x2: endX, y2: endY, leftX, leftY, rightX, rightY };
+      return shape;
+    }
 
-    default:
-      return undefined;
+    case "text": {
+      const shape: Shapes = { type: "text", x: startX, y: startY, value: "write" };
+      ctx.font = "16px Arial";
+      ctx.fillText(shape.value, shape.x, shape.y);
+      return shape;
+    }
   }
 }
 
-// -----------------------------
-// Fetch existing shapes
-// -----------------------------
-async function getExistingShapes(roomId: string): Promise<Shape[]> {
+function pointToLineDistance(
+  x: number,
+  y: number,
+  line: { x1: number; y1: number; x2: number; y2: number }
+) {
+  const A = x - line.x1;
+  const B = y - line.y1;
+  const C = line.x2 - line.x1;
+  const D = line.y2 - line.y1;
+  const dot = A * C + B * D;
+  const len_sq = C * C + D * D;
+  const param = len_sq !== 0 ? dot / len_sq : -1;
+  const xx = param < 0 ? line.x1 : param > 1 ? line.x2 : line.x1 + param * C;
+  const yy = param < 0 ? line.y1 : param > 1 ? line.y2 : line.y1 + param * D;
+  const dx = x - xx;
+  const dy = y - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// -------------------- FETCH EXISTING --------------------
+
+async function getExistingShapes(roomId: string): Promise<Shapes[]> {
   try {
     const res = await axios.get(`${HttpBackend}/elements/${roomId}`);
     const shapes = res.data.drawings;
-
-    const parsedShapes: Shape[] = shapes
-      .map((item: { shapes: string }) => {
-        try {
-          const shapeData = JSON.parse(item.shapes);
-          const parsed = shapeSchema.safeParse(shapeData);
-          return parsed.success ? parsed.data : null;
-        } catch {
-          return null;
-        }
+    const parsed = shapes
+      .map((x: { shapes: string }) => {
+        const parsedData = shapeSchema.safeParse(JSON.parse(x.shapes));
+        if (parsedData.success) return parsedData.data;
+        console.warn("Invalid shape data:", x.shapes);
+        return null;
       })
-      .filter((s): s is Shape => s !== null);
-
-    return parsedShapes;
+      .filter(Boolean);
+    return parsed as Shapes[];
   } catch (err) {
-    console.error("Failed to fetch shapes:", err);
+    console.log("Failed to fetch shapes", err);
     return [];
   }
 }
 
-// -----------------------------
-// Placeholder Functions
-// -----------------------------
-function eraseAt(e: MouseEvent, ctx: CanvasRenderingContext2D): void {
-  ctx.clearRect(e.clientX - 5, e.clientY - 5, 10, 10);
-}
-
-function SelectShape(_ctx: CanvasRenderingContext2D): void {
-  // Placeholder for selection logic
-}
-
-function MoveShape(_e: MouseEvent, _ctx: CanvasRenderingContext2D): void {
-  // Placeholder for movement logic
-}
+export default initdraw;
